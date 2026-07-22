@@ -1,9 +1,10 @@
 name: Keep Supabase Alive
 
+# 3일마다 자동 실행 + 수동 실행 버튼
 on:
   schedule:
-    - cron: "0 0 */3 * *"
-  workflow_dispatch:
+    - cron: "0 0 */3 * *"   # 3일마다 1회 (5일 공백을 절대 만들지 않음)
+  workflow_dispatch:          # GitHub 화면에서 직접 눌러 실행도 가능
 
 jobs:
   ping:
@@ -11,7 +12,7 @@ jobs:
     steps:
       - name: Ping Supabase
         run: |
-          curl -s "https://cosolvvjqgfclamictov.supabase.co/rest/v1/access_codes?select=code&limit=1" \
+          curl -s --retry 3 --retry-delay 5 "https://cosolvvjqgfclamictov.supabase.co/rest/v1/access_codes?select=code&limit=1" \
             -H "apikey: sb_publishable_ofthzWmaRhrrMOZU2Rk6AA_Qpqi5e4a" \
             -H "Authorization: Bearer sb_publishable_ofthzWmaRhrrMOZU2Rk6AA_Qpqi5e4a" \
             -o /dev/null
