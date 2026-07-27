@@ -113,8 +113,12 @@ def summarize(prompt):
             "anthropic-version": "2023-06-01",
         },
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        result = json.load(resp)
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.load(resp)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Claude API 호출 실패 ({e.code}): {body}") from None
     return "".join(block["text"] for block in result["content"] if block["type"] == "text")
 
 
