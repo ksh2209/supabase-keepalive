@@ -22,17 +22,33 @@ TITLE_SIMILARITY_THRESHOLD = 0.6
 MAX_ARTICLES = 10
 STOPWORDS = {"속보", "단독", "영상", "포토", "종합", "오늘", "어제", "내일", "관련"}
 
-# 정치 관련 기사를 걸러내기 위한 키워드 (제목/요약에 하나라도 포함되면 제외)
-POLITICS_KEYWORDS = {
-    "정치", "대통령", "국회", "여야", "정당", "총리", "장관", "청와대",
-    "국민의힘", "민주당", "조국혁신당", "개혁신당", "정의당",
-    "법사위", "국정감사", "탄핵", "총선", "대선", "의원", "여당", "야당",
+# 카테고리별로 제목/요약에 하나라도 포함되면 해당 카테고리 기사로 간주해 제외한다.
+CATEGORY_KEYWORDS = {
+    "정치": {
+        "정치", "대통령", "국회", "여야", "정당", "총리", "장관", "청와대",
+        "국민의힘", "민주당", "조국혁신당", "개혁신당", "정의당",
+        "법사위", "국정감사", "탄핵", "총선", "대선", "의원", "여당", "야당",
+    },
+    "경제": {
+        "경제", "증시", "코스피", "코스닥", "환율", "금리", "물가", "수출",
+        "무역수지", "영업이익", "매출", "실적", "주가", "투자", "부동산",
+        "GDP", "달러", "원화", "채권", "펀드", "은행", "기준금리",
+    },
 }
 
+# 기본적으로 제외할 카테고리. workflow_dispatch 입력(EXCLUDE_CATEGORIES)으로 덮어쓸 수 있다.
+EXCLUDE_CATEGORIES = [
+    c.strip() for c in os.environ.get("EXCLUDE_CATEGORIES", "정치").split(",") if c.strip()
+]
 
-def is_politics(title, description):
+
+def is_excluded(title, description):
     text = f"{title} {description}"
-    return any(keyword in text for keyword in POLITICS_KEYWORDS)
+    for category in EXCLUDE_CATEGORIES:
+        keywords = CATEGORY_KEYWORDS.get(category)
+        if keywords and any(keyword in text for keyword in keywords):
+            return True
+    return False
 
 
 def fetch_news(query, display=30):
@@ -89,7 +105,7 @@ def collect_articles():
                 continue
             title = strip_tags(item.get("title", ""))
             description = strip_tags(item.get("description", ""))
-            if is_politics(title, description):
+            if is_excluded(title, description):
                 continue
             press = urllib.parse.urlparse(link).netloc
             articles[link] = {
@@ -143,9 +159,10 @@ def top_keyword(clusters):
 
 def build_report(today, yesterday, clusters):
     lines = [f"# 네이버 뉴스 브리핑 ({today.isoformat()})", ""]
+    excluded = ", ".join(EXCLUDE_CATEGORIES) if EXCLUDE_CATEGORIES else "없음"
     lines.append(
         f"_{yesterday.isoformat()}~{today.isoformat()} 기간, 네이버 뉴스 검색 API 기반 자동 수집 "
-        "(AI 요약 미사용 — 요약문은 네이버가 제공하는 원문 스니펫이며, 정렬은 보도 매체 수 기준입니다. 정치 기사는 제외됩니다)._"
+        f"(AI 요약 미사용 — 요약문은 네이버가 제공하는 원문 스니펫이며, 정렬은 보도 매체 수 기준입니다. 제외 카테고리: {excluded})._"
     )
     lines.append("")
 
