@@ -3,6 +3,11 @@ name: Naver News Briefing
 # 수동 실행 전용 (Actions 탭 > Run workflow) — 정기 자동 실행 없음
 on:
   workflow_dispatch:
+    inputs:
+      exclude:
+        description: "제외할 카테고리 (쉼표로 구분, 예: 정치,경제)"
+        required: false
+        default: "정치"
 
 permissions:
   contents: write
@@ -23,6 +28,7 @@ jobs:
         env:
           NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          EXCLUDE_CATEGORIES: ${{ github.event.inputs.exclude }}
         run: python scripts/collect_naver_news.py
 
       - name: Commit report
